@@ -31,7 +31,7 @@ const keys={};addEventListener("keydown",e=>keys[e.key.toLowerCase()]=1);addEven
 document.querySelectorAll("[data-k]").forEach(b=>{let k=b.dataset.k;["touchstart","mousedown"].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();keys[k]=1}));["touchend","mouseup"].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();keys[k]=0}))});
 jump.onclick=()=>P.position.y=Math.min(P.position.y+.8,2);
 const others=new Map();function other(p){let o=others.get(p.id);if(!o){o=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshStandardMaterial({color:0xff5533}));S.add(o);others.set(p.id,o)}o.position.set(p.x,p.y+1,p.z)}
-const ws=new WebSocket((location.protocol==="https:"?"wss":"ws")+"://"+location.host);
+server.js
 ws.onopen=()=>status.textContent="Online • Multiplayer ready";
 ws.onclose=()=>status.textContent="Offline";
 ws.onmessage=e=>{let m=JSON.parse(e.data);if(m.type==="welcome")m.players.forEach(p=>{if(p.id!==m.id)other(p)});if(m.type==="playerJoined")other(m.player);if(m.type==="playerUpdated")other(m.player);if(m.type==="playerLeft"){let o=others.get(m.id);if(o){S.remove(o);others.delete(m.id)}}if(m.type==="chat"){let d=document.createElement("div");d.textContent=m.name+": "+m.text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight}};
