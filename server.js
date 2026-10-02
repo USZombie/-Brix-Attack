@@ -5,7 +5,7 @@ const WebSocket=require("ws");
 const app=express();
 const server=http.createServer(app);
 const wss=new WebSocket.Server({server});
-app.use(express.static(path.join(__dirname,"public")));
+app.use(express.static(__dirname));
 app.get("/health",(req,res)=>res.json({ok:true,game:"Brix Attack",players:wss.clients.size}));
 const players=new Map();
 function broadcast(m,except){const d=JSON.stringify(m);for(const c of wss.clients)if(c.readyState===WebSocket.OPEN&&c!==except)c.send(d)}
