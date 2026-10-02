@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Brix Attack</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:system-ui}
+#hud,#chat{position:fixed;z-index:5;color:white;background:#0009;padding:10px;border-radius:12px}
+#hud{top:10px;left:10px}#chat{top:10px;right:10px;width:260px}
+#messages{height:80px;overflow:auto;font-size:12px}#chat input{width:70%;box-sizing:border-box}
+#touch{position:fixed;bottom:15px;left:15px;z-index:5;display:grid;grid-template-columns:55px 55px 55px;gap:5px}
+#touch button,#jump{height:55px;border:0;border-radius:14px;background:#ffffff44;color:#fff;font-size:20px}
+.blank{visibility:hidden}#jump{position:fixed;right:20px;bottom:20px;z-index:5;width:75px}
+canvas{display:block}
+</style></head><body>
+<div id="hud"><b>BRIX ATTACK</b><div id="status">Connecting...</div></div>
+<div id="chat"><div id="messages"></div><input id="chatInput" placeholder="Chat"><button id="send">Send</button></div>
+<div id="touch"><span class="blank"></span><button data-k="w">▲</button><span class="blank"></span><button data-k="a">◀</button><button data-k="s">▼</button><button data-k="d">▶</button></div>
+<button id="jump">JUMP</button>
+<script src="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.min.js"></script>
+<script>
+const S=new THREE.Scene();S.background=new THREE.Color(0x87ceeb);
+const C=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,1000);
+const R=new THREE.WebGLRenderer({antialias:true});R.setSize(innerWidth,innerHeight);document.body.appendChild(R.domElement);
+S.add(new THREE.HemisphereLight(0xffffff,0x667788,2));
+const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(10,20,10);S.add(sun);
+const g=new THREE.Mesh(new THREE.BoxGeometry(60,1,60),new THREE.MeshStandardMaterial({color:0x55aa55}));g.position.y=-.5;S.add(g);
+for(let i=0;i<35;i++){let b=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:[0xffcc55,0xff7777,0x66aaff,0xaa77ff][i%4]}));b.position.set((Math.random()-.5)*45,.5,(Math.random()-.5)*45);S.add(b)}
+const P=new THREE.Group();let body=new THREE.Mesh(new THREE.BoxGeometry(1,1.4,1),new THREE.MeshStandardMaterial({color:0x3366ff}));body.position.y=.7;P.add(body);
+let head=new THREE.Mesh(new THREE.BoxGeometry(1.05,1.05,1.05),new THREE.MeshStandardMaterial({color:0xffcc99}));head.position.y=1.9;P.add(head);S.add(P);
+C.position.set(0,5,8);
+const keys={};addEventListener("keydown",e=>keys[e.key.toLowerCase()]=1);addEventListener("keyup",e=>keys[e.key.toLowerCase()]=0);
+document.querySelectorAll("[data-k]").forEach(b=>{let k=b.dataset.k;["touchstart","mousedown"].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();keys[k]=1}));["touchend","mouseup"].forEach(ev=>b.addEventListener(ev,e=>{e.preventDefault();keys[k]=0}))});
+jump.onclick=()=>P.position.y=Math.min(P.position.y+.8,2);
+const others=new Map();function other(p){let o=others.get(p.id);if(!o){o=new THREE.Mesh(new THREE.BoxGeometry(1,2,1),new THREE.MeshStandardMaterial({color:0xff5533}));S.add(o);others.set(p.id,o)}o.position.set(p.x,p.y+1,p.z)}
+const ws=new WebSocket((location.protocol==="https:"?"wss":"ws")+"://"+location.host);
+ws.onopen=()=>status.textContent="Online • Multiplayer ready";
+ws.onclose=()=>status.textContent="Offline";
+ws.onmessage=e=>{let m=JSON.parse(e.data);if(m.type==="welcome")m.players.forEach(p=>{if(p.id!==m.id)other(p)});if(m.type==="playerJoined")other(m.player);if(m.type==="playerUpdated")other(m.player);if(m.type==="playerLeft"){let o=others.get(m.id);if(o){S.remove(o);others.delete(m.id)}}if(m.type==="chat"){let d=document.createElement("div");d.textContent=m.name+": "+m.text;messages.appendChild(d);messages.scrollTop=messages.scrollHeight}};
+function send(){if(chatInput.value.trim()&&ws.readyState===1){ws.send(JSON.stringify({type:"chat",text:chatInput.value}));chatInput.value=""}}send.onclick=send;chatInput.onkeydown=e=>{if(e.key==="Enter")send()};
+let last=0;function loop(){requestAnimationFrame(loop);let sp=.12;if(keys.w)P.position.z-=sp;if(keys.s)P.position.z+=sp;if(keys.a)P.position.x-=sp;if(keys.d)P.position.x+=sp;P.position.y*=.92;if(P.position.y<.02)P.position.y=0;
+C.position.lerp(new THREE.Vector3(P.position.x,5,P.position.z+8),.08);C.lookAt(P.position.x,1,P.position.z);
+if(ws.readyState===1&&performance.now()-last>80){ws.send(JSON.stringify({type:"move",x:P.position.x,y:P.position.y,z:P.position.z}));last=performance.now()}R.render(S,C)}loop();
+addEventListener("resize",()=>{C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();R.setSize(innerWidth,innerHeight)});
+</script></body></html>
